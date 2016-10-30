@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--GearVR plugin additions-->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+	<!-- init section is always evaluated once per architecture -->
+	<trace enable="true"/>
+	<init>
+		<log text="Chartboost init"/>		
+	</init>
+
+  <androidManifestUpdates>
+    <addElements tag="application">
+      <activity android:name="com.chartboost.sdk.CBImpressionActivity" 
+                android:excludeFromRecents="true" 
+                android:hardwareAccelerated="true" 
+                android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" 
+                android:configChanges="keyboardHidden|orientation|screenSize" />
+    </addElements>
+
+    <!-- Read App ID from plugin project settings and add to the manifest -->  
+    <setStringFromProperty result="AppId" ini="Engine" section="/Script/Chartboost.ChartboostSettings" property="AppId" default=""/>
+    <setElement result="AppIdMetadata" value="meta-data"/>
+    <addAttribute tag="$AppIdMetadata" name="android:name" value="com.epicgames.ue4.ChartBoost.AppId"/>
+    <addAttribute tag="$AppIdMetadata" name="android:value" value="$S(AppId)"/>
+    <addElement tag="application" name="AppIdMetadata"/>
+
+    <!-- Read App ID from plugin project settings and add to the manifest -->
+    <setStringFromProperty result="AppSignature" ini="Engine" section="/Script/Chartboost.ChartboostSettings" property="AppSignature" default=""/>
+    <setElement result="AppSignatureMetadata" value="meta-data"/>
+    <addAttribute tag="$AppSignatureMetadata" name="android:name" value="com.epicgames.ue4.ChartBoost.AppSignature"/>
+    <addAttribute tag="$AppSignatureMetadata" name="android:value" value="$S(AppSignature)"/>
+    <addElement tag="application" name="AppSignatureMetadata"/>
+
+  </androidManifestUpdates>
+
+	<!-- optional additions to proguard -->
+	<proguardAdditions>
+		<insert>
+<!-- -keep class com.oculus.** {
+   *;
+}
+-keep class android.app.** {
+   *;
+} -->
+
+-keep class com.chartboost.** { *; }
+-dontwarn android.app.Activity
+		</insert>
+	</proguardAdditions>
+	
+	<!-- optional files or directories to copy to Intermediate/Android/APK -->
+ 	<resourceCopies>		
+		<copyFile src="$S(PluginDir)/../../lib/Android/chartboost-6.6.0.jar" dst="$S(BuildDir)/libs/chartboost-6.6.0.jar" />
+<!--		<isArch arch="armeabi-v7a">
+			<copyFile src="$S(EngineDir)/Source/ThirdParty/Oculus/LibOVRMobile/LibOVRMobile_062/VrApi/Libs/Android/armeabi-v7a/libvrapi.so"
+						dst="$S(BuildDir)/libs/armeabi-v7a/libvrapi.so" />
+		</isArch>
+		<copyFile src="$S(EngineDir)/Source/ThirdParty/Oculus/LibOVRMobile/LibOVRMobile_062/VrApi/Libs/Android/VrApi.jar"
+					dst="$S(BuildDir)/libs/VrApi.jar" />
+		<copyFile src="$S(EngineDir)/Source/ThirdParty/Oculus/LibOVRMobile/LibOVRMobile_062/1stParty/VrPlatform/libs/vrplatlib.jar"
+					dst="$S(BuildDir)/libs/vrplatlib.jar" />
+		<if condition="bRemoveOSIG">
+			<true>
+				<deleteFiles filespec="assets/oculussig_*" />
+			</true>
+		</if>-->
+	</resourceCopies>
+
+	<!-- optional additions to the GameActivity imports in GameActivity.java -->
+	<gameActivityImportAdditions>
+		<insert>
+			import com.chartboost.sdk.Chartboost;
+			import com.chartboost.sdk.CBLocation;
+			import com.chartboost.sdk.ChartboostDelegate;
+			import com.chartboost.sdk.Libraries.CBLogging.Level;
+			import com.chartboost.sdk.Model.CBError.CBClickError;
+			import com.chartboost.sdk.Model.CBError.CBImpressionError;
+			import com.chartboost.sdk.Tracking.CBAnalytics;
+			import com.chartboost.sdk.CBImpressionActivity;
+	</insert>
+	</gameActivityImportAdditions>
+	
+
+	<!-- optional additions to the GameActivity class in GameActivity.java -->
+	<gameActivityClassAdditions>
+		<insert>
+
+      private String location = "default";
+
+ 
+      //Video Delegate Methods //
+
+      // Called after a rewarded video has been loaded from the Chartboost API
+      // servers and cached locally.
+      public native void nativeChartboostDidCacheRewardedVideo(String location);
+
+      // Called after a rewarded video has attempted to load from the Chartboost API
+      // servers but failed.
+      public native void nativeChartnoostDidFailToLoadRewardedVideo(String location);
+
+      // Called after a rewarded video has been closed.
+      public native void nativeChartboostDidCloseRewardedVideo(String location);
+
+      // Called after a rewarded video has been viewed completely and user is eligible for reward.
+      public native void nativeChartboostDidCompleteRewardedVideo(String location, int reward);
+
+      private ChartboostDelegate ChartboostDelegate = new ChartboostDelegate() {
+
+      //Video Delegate Methods //
+
+      // Called after a rewarded video has been loaded from the Chartboost API
+      // servers and cached locally.
+      public void didCacheRewardedVideo(String location)  {
+      Log.debug("ChartboostDidCacheRewardedVideo");
+      nativeChartboostDidCacheRewardedVideo(location);
+      }
+
+      // Called after a rewarded video has attempted to load from the Chartboost API
+      // servers but failed.
+      public void didFailToLoadRewardedVideo(String location)  {
+      Log.debug("ChartboostDidFailToLoadRewardedVideo");
+      nativeChartnoostDidFailToLoadRewardedVideo(location);
+      }
+
+      // Called after a rewarded video has been closed.
+      public void didCloseRewardedVideo(String location)  {
+      Log.debug("ChartboostDidCloseRewardedVideo");
+      nativeChartboostDidCloseRewardedVideo(location);
+      }
+
+      // Called after a rewarded video has been viewed completely and user is eligible for reward.
+      public void didCompleteRewardedVideo(String location, int reward)  {
+      Log.debug("ChartboostDidCompleteRewardedVideo");
+      nativeChartboostDidCompleteRewardedVideo(location, reward);
+      }
+
+      };
+
+      public void AndroidThunkJava_Chartboost_CacheRewardedVideo(String location)
+      {
+      Chartboost.cacheRewardedVideo(CBLocation.LOCATION_DEFAULT);
+      }
+
+      public void AndroidThunkJava_Chartboost_ShowRewardedVideo(String location)
+      {
+      Chartboost.showRewardedVideo(location);
+      Log.debug( "AndroidThunkJava_Chartboost_ShowRewardedVideo: " + "location" );
+      }
+
+      public boolean AndroidThunkJava_Chartboost_HasRewardedVideo(String location)
+      {
+      Log.debug( "AndroidThunkJava_Chartboost_HasRewardedVideo: " + Chartboost.hasRewardedVideo(CBLocation.LOCATION_DEFAULT) + " )" );
+      return Chartboost.hasRewardedVideo(CBLocation.LOCATION_DEFAULT);
+      }
+    </insert>
+	</gameActivityClassAdditions>
+	
+	<!-- optional additions to GameActivity onCreate metadata reading in GameActivity.java -->
+	<gameActivityReadMetadataAdditions>
+		<insert>
+      String appIdcb = bundle.getString("com.epicgames.ue4.ChartBoost.AppId");
+      String appSignature = bundle.getString("com.epicgames.ue4.ChartBoost.AppSignature");
+
+      //String appId = "";
+      //String appSignature = "";
+
+      Chartboost.startWithAppId(this, appIdcb, appSignature);
+      Chartboost.setDelegate(ChartboostDelegate);
+      Chartboost.onCreate(this);
+
+      Log.debug("Chartboost.startWithAppId(\"" + appIdcb + "\", \"" + appSignature + "\")");
+
+    </insert>
+	</gameActivityReadMetadataAdditions>
+	
+	<!-- optional additions to GameActivity onCreate in GameActivity.java -->
+	<gameActivityOnCreateAdditions>
+    <insert>
+
+    </insert>
+  </gameActivityOnCreateAdditions>
+
+	<!-- optional additions to GameActivity onDestroy in GameActivity.java -->
+	<gameActivityOnDestroyAdditions>
+		<insert>
+		Chartboost.onDestroy(this);
+		</insert>
+	</gameActivityOnDestroyAdditions>
+	
+	
+	<!-- optional additions to GameActivity onStart in GameActivity.java -->
+	<gameActivityOnStartAdditions>
+		<insert>
+		Chartboost.onStart(this);
+		</insert>
+	</gameActivityOnStartAdditions>
+
+	<!-- optional additions to GameActivity onStop in GameActivity.java -->
+	<gameActivityOnStopAdditions>
+		<insert>
+		Chartboost.onStop(this);
+		</insert>
+	</gameActivityOnStopAdditions>
+	
+
+	<!-- optional additions to GameActivity onPause in GameActivity.java	-->
+	<gameActivityOnPauseAdditions>
+		<insert>
+		Chartboost.onPause(this);
+		</insert>
+	</gameActivityOnPauseAdditions>
+
+
+	<!-- optional additions to GameActivity onResume in GameActivity.java	-->
+	<gameActivityOnResumeAdditions>
+		<insert>
+		Chartboost.onResume(this);
+		</insert>
+	</gameActivityOnResumeAdditions>
+
+
+	<!-- optional additions to GameActivity onActivityResult in GameActivity.java -->
+	<gameActivityOnActivityResultAdditions>
+	</gameActivityOnActivityResultAdditions>
+	
+
+	<!-- optional libraries to load in GameActivity.java before libUE4.so -->
+	<soLoadLibrary>
+		<!-- need this if plugin enabled and supported architecture, even if not packaged for GearVR -->
+	<!-- 	<if condition="bSupported">
+			<true>
+				<loadLibrary name="vrapi" failmsg="GearVR library not loaded and required!" />
+			</true>
+		</if> -->
+	</soLoadLibrary>
+
+</root>
